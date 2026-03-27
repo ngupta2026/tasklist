@@ -117,6 +117,197 @@ plt.show()
             "Apply blur only to a region of interest.",
         ],
     },
+    "box_and_bilateral_blur": {
+        "title": "Box Blur and Bilateral Filtering",
+        "description": "Compare a simple averaging blur with edge-preserving bilateral filtering.",
+        "goal": "Smooth noisy regions while learning how different blur algorithms affect edges and fine detail.",
+        "libraries": ["OpenCV", "NumPy", "Matplotlib"],
+        "walkthrough": """We start with a box blur, which replaces each pixel with the average of a local neighborhood.
+Then we apply a bilateral filter, which smooths similar pixels while preserving stronger intensity changes.
+Viewing the results side by side makes it easier to see why bilateral filtering is often preferred near object boundaries.""",
+        "code_template": """# Compare averaging blur with bilateral filtering
+box_blur = cv2.blur(image_rgb, (9, 9))
+bilateral = cv2.bilateralFilter(image_rgb, d=9, sigmaColor=60, sigmaSpace=60)
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+axes[0].imshow(image_rgb)
+axes[0].set_title("Original")
+axes[0].axis("off")
+
+axes[1].imshow(box_blur)
+axes[1].set_title("Box Blur")
+axes[1].axis("off")
+
+axes[2].imshow(bilateral)
+axes[2].set_title("Bilateral Filter")
+axes[2].axis("off")
+
+plt.tight_layout()
+plt.show()
+""",
+        "solution_notes": [
+            "A box blur is fast and simple but tends to wash out edges.",
+            "Bilateral filtering is slower but usually keeps boundaries sharper.",
+            "This comparison is useful when you need denoising without losing important structure.",
+        ],
+        "practice_prompts": [
+            "Increase the box kernel size and compare edge softness.",
+            "Tune `sigmaColor` and `sigmaSpace` for stronger or weaker bilateral smoothing.",
+            "Test both filters before running edge detection.",
+        ],
+    },
+    "sharpening_filters": {
+        "title": "Image Sharpening with Kernels and Unsharp Masking",
+        "description": "Enhance edges and local contrast using classic sharpening operations.",
+        "goal": "Create a sharper image while understanding the tradeoff between detail enhancement and noise amplification.",
+        "libraries": ["OpenCV", "NumPy", "Matplotlib"],
+        "walkthrough": """We first apply a custom sharpening kernel to emphasize local intensity changes.
+Then we build an unsharp mask by subtracting a blurred version from the original image.
+Comparing both outputs shows that sharpening can be implemented either as convolution or as detail boosting.""",
+        "code_template": """# Sharpen the image with a kernel and an unsharp mask
+kernel = np.array([
+    [0, -1, 0],
+    [-1, 5, -1],
+    [0, -1, 0],
+], dtype=np.float32)
+
+sharpened_kernel = cv2.filter2D(image_rgb, ddepth=-1, kernel=kernel)
+gaussian = cv2.GaussianBlur(image_rgb, (0, 0), sigmaX=2.0)
+sharpened_unsharp = cv2.addWeighted(image_rgb, 1.6, gaussian, -0.6, 0)
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+axes[0].imshow(image_rgb)
+axes[0].set_title("Original")
+axes[0].axis("off")
+
+axes[1].imshow(sharpened_kernel)
+axes[1].set_title("Kernel Sharpening")
+axes[1].axis("off")
+
+axes[2].imshow(sharpened_unsharp)
+axes[2].set_title("Unsharp Mask")
+axes[2].axis("off")
+
+plt.tight_layout()
+plt.show()
+""",
+        "solution_notes": [
+            "Sharpening increases local contrast, which can make boundaries appear crisper.",
+            "Unsharp masking is built by subtracting a blurred version from the original image.",
+            "Over-sharpening can emphasize noise and create halos around strong edges.",
+        ],
+        "practice_prompts": [
+            "Change the kernel weights to make sharpening more or less aggressive.",
+            "Tune the blur radius and blending weights in the unsharp mask.",
+            "Apply sharpening after denoising and compare the result.",
+        ],
+    },
+    "morphology_operations": {
+        "title": "Morphological Operations for Cleanup",
+        "description": "Use erosion, dilation, opening, and closing to refine binary image masks.",
+        "goal": "Clean up small artifacts and repair fragmented foreground regions after segmentation.",
+        "libraries": ["OpenCV", "NumPy", "Matplotlib"],
+        "walkthrough": """We start by generating a binary mask from the grayscale image.
+Then we apply erosion and dilation to see how binary shapes shrink and grow.
+Finally, we compare opening and closing, which are standard cleanup operations for removing noise or filling small gaps.""",
+        "code_template": """# Use morphology to clean up a thresholded mask
+gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+_, mask = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+kernel = np.ones((5, 5), dtype=np.uint8)
+
+eroded = cv2.erode(mask, kernel, iterations=1)
+dilated = cv2.dilate(mask, kernel, iterations=1)
+opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+axes[0].imshow(mask, cmap="gray")
+axes[0].set_title("Original Mask")
+axes[0].axis("off")
+
+axes[1].imshow(eroded, cmap="gray")
+axes[1].set_title("Erosion")
+axes[1].axis("off")
+
+axes[2].imshow(dilated, cmap="gray")
+axes[2].set_title("Dilation")
+axes[2].axis("off")
+
+axes[3].imshow(opened, cmap="gray")
+axes[3].set_title("Opening")
+axes[3].axis("off")
+
+axes[4].imshow(closed, cmap="gray")
+axes[4].set_title("Closing")
+axes[4].axis("off")
+
+plt.tight_layout()
+plt.show()
+""",
+        "solution_notes": [
+            "Erosion removes small white regions and thins larger ones.",
+            "Dilation expands white regions and can reconnect separated components.",
+            "Opening removes small specks, while closing fills small holes and gaps.",
+        ],
+        "practice_prompts": [
+            "Change the kernel shape or size and inspect the effect.",
+            "Run contour detection before and after cleanup.",
+            "Apply opening twice to see how aggressive cleanup changes the mask.",
+        ],
+    },
+    "gradient_emboss": {
+        "title": "Laplacian, Sobel, and Emboss-Style Filtering",
+        "description": "Explore derivative-based filters and a stylized emboss effect.",
+        "goal": "Highlight directional structure and learn how convolution kernels can emphasize texture and relief.",
+        "libraries": ["OpenCV", "NumPy", "Matplotlib"],
+        "walkthrough": """We compute Sobel gradients to measure horizontal and vertical intensity changes.
+Then we apply the Laplacian operator to capture second-order detail.
+Finally, we use an emboss-style kernel to create a relief effect that makes texture direction easier to see.""",
+        "code_template": """# Apply derivative filters and an emboss kernel
+gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+
+emboss_kernel = np.array([
+    [-2, -1, 0],
+    [-1, 1, 1],
+    [0, 1, 2],
+], dtype=np.float32)
+emboss = cv2.filter2D(gray, ddepth=-1, kernel=emboss_kernel)
+emboss = cv2.convertScaleAbs(emboss + 128)
+
+fig, axes = plt.subplots(1, 4, figsize=(18, 5))
+axes[0].imshow(np.abs(sobel_x), cmap="gray")
+axes[0].set_title("Sobel X")
+axes[0].axis("off")
+
+axes[1].imshow(np.abs(sobel_y), cmap="gray")
+axes[1].set_title("Sobel Y")
+axes[1].axis("off")
+
+axes[2].imshow(np.abs(laplacian), cmap="gray")
+axes[2].set_title("Laplacian")
+axes[2].axis("off")
+
+axes[3].imshow(emboss, cmap="gray")
+axes[3].set_title("Emboss Effect")
+axes[3].axis("off")
+
+plt.tight_layout()
+plt.show()
+""",
+        "solution_notes": [
+            "Sobel filters reveal directional gradients, which are useful for structure analysis.",
+            "The Laplacian responds strongly to rapid intensity change in any direction.",
+            "Embossing is a stylized convolution that creates a raised-surface appearance.",
+        ],
+        "practice_prompts": [
+            "Combine Sobel X and Sobel Y into a gradient magnitude image.",
+            "Try larger derivative kernels to change sensitivity.",
+            "Colorize the emboss output by blending it with the original image.",
+        ],
+    },
     "threshold_segmentation": {
         "title": "Threshold-Based Segmentation",
         "description": "Separate foreground and background regions using binary thresholding.",

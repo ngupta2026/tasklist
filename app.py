@@ -13,7 +13,7 @@ from task_specs import TASK_SPECS
 
 st.set_page_config(
     page_title="Image Task Tutorial Notebook Generator",
-    page_icon="🧪",
+    page_icon="IP",
     layout="wide",
 )
 
@@ -39,7 +39,8 @@ def make_archive(files: list[tuple[str, bytes]]) -> bytes:
 st.title("Image Processing Tutorial Notebook Generator")
 st.write(
     "Upload one or more images, pick a task, and generate Python notebooks that walk "
-    "through the image-processing workflow as a tutorial."
+    "through image-processing workflows such as blurring, sharpening, thresholding, "
+    "edge detection, and enhancement as a tutorial."
 )
 
 with st.sidebar:
